@@ -1,17 +1,27 @@
+import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Lambda, Flatten
+from keras.optimizers import Adam, RMSprop
 from sklearn.model_selection import train_test_split
-from sklearn import svm
 
-MAX_LEARNING_RATE=28000
+# create the training & test sets, skipping the header row with [1:]
+train = pd.read_csv("train.csv")
+test = pd.read_csv("test.csv")
 
-labeled_images = pd.read_csv('train.csv')
-images = labeled_images.iloc[0:MAX_LEARNING_RATE,1:]
-labels = labeled_images.iloc[0:MAX_LEARNING_RATE,:1]
-train_images, test_images,train_labels, test_labels = train_test_split(images, labels, train_size=0.8, random_state=0)
 
-test_images[test_images>0]=1
-train_images[train_images>0]=1
+X_train = (train.ix[:,1:].values).astype('float32') # all pixel values
+y_train = train.ix[:,0].values.astype('int32')       # only labels i.e targets digits
+X_test = test.values.astype('float32')
+# Convert train data set to (num_images, img_rows, img_cols) format
+# X_train = X_train.reshape(X_train.shape[0], 28, 28)
 
-clf = svm.SVC()
-clf.fit(train_images, train_labels.values.ravel())
-print(clf.score(test_images,test_labels))
+# expand 1 more dimention as 1 for color channel gray
+X_train = X_train.reshape(X_train.shape[0], 28, 28, 1)
+print(X_train.shape)
+
+X_test = X_test.reshape(X_test.shape[0], 28, 28, 1)
+print(X_test.shape)
+
