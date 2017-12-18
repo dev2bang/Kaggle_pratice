@@ -1,69 +1,43 @@
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Lambda, Flatten
-from keras.optimizers import Adam, RMSprop
-from keras.preprocessing import image
-from keras.utils.np_utils import to_categorical
+from keras.utils import np_utils
+from keras.layers.core import Activation, Dropout, Dense
 
-from sklearn.model_selection import train_test_split
+import pandas as pd
+import numpy as np
 
-# create the training & test sets, skipping the header row with [1:]
-train = pd.read_csv("train.csv")
-test = pd.read_csv("test.csv")
+train = pd.read_csv('train.csv')
+test = pd.read_csv('test.csv')
+labels = train.ix[:,0].values.astype('int32')
+X_train = (train.ix[:,1:].values).astype('float32')
+X_test = (train.ix[:,:].values).astype('float32')
 
+y_train = np_utils.to_categorical(labels)
 
-X_train = (train.ix[:,1:].values).astype('float32') # all pixel values
-y_train = train.ix[:,0].values.astype('int32')       # only labels i.e targets digits
-X_test = test.values.astype('float32')
-# Convert train data set to (num_images, img_rows, img_cols) format
-# X_train = X_train.reshape(X_train.shape[0], 28, 28)
+scale = np.max(X_train)
+X_train /= scale
+X_test /= scale
 
-# expand 1 more dimention as 1 for colour channel gray
-X_train = X_train.reshape(X_train.shape[0], 28, 28, 1)
-#print(X_train.shape)
+mean = np.std(X_train)
+X_train -= mean
+X_test -= mean
 
-X_test = X_test.reshape(X_test.shape[0], 28, 28, 1)
-#print(X_test.shape)
+input_dim = X_train.shape[1]
+np_classes = y_train.shape[1]
 
-mean_px = X_train.mean().astype(np.float32)
-std_px = X_train.std().astype(np.float32)
-
-def standardize(x):
-    return (x-mean_px)/std_px
-
-y_train = to_categorical(y_train)
-num_classes = y_train.shape[1]
-
-# fix random seed for reproducibility
-seed = 43
-np.random.seed(seed)
-
-# Create Model
 model = Sequential()
-model.add(Lambda(standardize, input_shape=(28,28,1)))
-model.add(Flatten())
-model.add(Dense(10, activation='softmax'))
+model.add(Dense(128,input_dim=input_dim))
+model.add(Activation('relu'))
+model.add(Dropout(0.15))
+model.add(Dense(128))
+model.add(Activation('relu'))
+model.add(Dropout(0.15))
+model.add(Dense(np_classes))
+model.add(Activation('softmax'))
 
-print("input shape ", model.input_shape)
-print("output shape ", model.output_shape)
+model.compile(loss='categorical_crossentropy', optimizer='rmsprop',metrics=['accuracy'])
 
-model.compile(optimizer=RMSprop(lr=0.001),
-        loss='categorical_crossentropy',
-        metrics=['accuracy'])
+model.fit(X_train, y_train, nb_epoch=10, batch_size=16, validation_split=0.1, verbose=2)
 
+preds = model.predict_classes(X_test, verbose=0)
 
-gen = image.ImageDataGenerator()
-X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.10, random_state=42)
-batches = gen.flow(X_train, y_train, batch_size=64)
-val_batches=gen.flow(X_val, y_val, batch_size=64)
-
-history=model.fit_generator(batches, batches.n, nb_epoch=1,
-        validation_data=val_batches, nb_val_samples=val_batches.n)
-
-predictions = model.predict_classes(X_test, verbose=0)
-submissions=pd.DataFrame({"ImageId":list(range(1,len(predictions)+1)), "Label":predictions})
-submissions.to_csv("DR.csv", index=False, header=True)
-
+pd.DataFrame({"ImageId":list(range(1,len(preds)+1)),"label":preds}).to_csv("DR2.csv", index=False, header=True)
