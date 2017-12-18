@@ -51,7 +51,7 @@ print("input shape ", model.input_shape)
 print("output shape ", model.output_shape)
 
 model.compile(optimizer=RMSprop(lr=0.001),
-        loss='categorical_crossentyopy',
+        loss='categorical_crossentropy',
         metrics=['accuracy'])
 
 
@@ -63,9 +63,7 @@ val_batches=gen.flow(X_val, y_val, batch_size=64)
 history=model.fit_generator(batches, batches.n, nb_epoch=1,
         validation_data=val_batches, nb_val_samples=val_batches.n)
 
-history_dict = history.hisotry
-history_dict.keys()
-
-loss_values = history_dict['loss']
-loss_values = history_dict['loss']
+predictions = model.predict_classes(X_test, verbose=0)
+submissions=pd.DataFrame({"ImageId":list(range(1,len(predictions)+1)), "Label":predictions})
+submissions.to_csv("DR.csv", index=False, header=True)
 
