@@ -1,3 +1,4 @@
 titanic/result.csv
 .idea
 *.csv
+*.DS_Store
